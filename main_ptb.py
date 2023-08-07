@@ -15,6 +15,7 @@ _TELEGRAM_CHAT_ID_AVAILABLE = {int(x) for x in os.environ.get('TELEGRAM_CHAT_ID_
 
 _BOT_STATE_DICT = {
     'online': True,
+    'temperature': 0.1,
 }
 
 print(_TELEGRAM_CHAT_ID_AVAILABLE)
@@ -54,10 +55,10 @@ class NaiveChatGPT:
     def _check_need_response(self):
         tmp0 = 'check if the last message is for the assistant to resply. reply "yes" or "no"'
         self.message_list.append({"role": "user", "content": tmp0})
-        self.response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.message_list)
+        self.response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.message_list, temperature=0.1)
         tmp0 = self.response.choices[0].message.content
         print('[mydebug][gpt-chat]', tmp0)
-        ret = tmp0.lower() in ['yes', 'y']
+        ret = tmp0.split(' ',1)[0].strip().lower() in ['yes', 'y']
         self.message_list.pop() #remove last message
         return ret
 
@@ -120,11 +121,20 @@ async def admin_shutdown(update: telegram.Update, context: telegram.ext.ContextT
     if update.effective_user.id==int(os.environ['TELEGRAM_ADMIN_USER_ID']):
         _BOT_STATE_DICT['online'] = False
 
+async def admin_set_temperature(update: telegram.Update, context: telegram.ext.ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id==int(os.environ['TELEGRAM_ADMIN_USER_ID']):
+        try:
+            print('[mydebug][temperature]', update.message.text)
+            tmp0 = max(0,min(1,float(update.message.text.split(' ',1)[1].strip())))
+            _BOT_STATE_DICT['temperature'] = tmp0
+        except:
+            pass
+
 async def admin_start(update: telegram.Update, context: telegram.ext.ContextTypes.DEFAULT_TYPE):
     print('[mydebug][start]', update.effective_user.id, int(os.environ['TELEGRAM_ADMIN_USER_ID']))
     if update.effective_user.id==int(os.environ['TELEGRAM_ADMIN_USER_ID']):
         _BOT_STATE_DICT['online'] = True
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=f'我在 {update.effective_user.first_name}')
+        await context.bot.send_message(chat_id=update.effective_chat.id, text='我在')
 
 @is_available_decorator
 async def status(update: telegram.Update, context: telegram.ext.ContextTypes.DEFAULT_TYPE):
@@ -145,6 +155,8 @@ if __name__ == '__main__':
     app.add_handler(telegram.ext.CommandHandler("shutdown", admin_shutdown)) #only admin can shutdown
 
     app.add_handler(telegram.ext.CommandHandler("start", admin_start)) #only admin can start
+
+    app.add_handler(telegram.ext.CommandHandler("temperature", admin_set_temperature)) #only admin can start
 
     app.add_handler(telegram.ext.MessageHandler(telegram.ext.filters.TEXT & (~telegram.ext.filters.COMMAND), gpt_chat))
 
