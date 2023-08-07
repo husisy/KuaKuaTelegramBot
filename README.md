@@ -25,6 +25,11 @@
    * `TELEGRAM_CHAT_ID_AVAILABLE`: only id listed here can receive the response from the bot
    * `OPENAI_API_KEY`
 
+```bash
+micromamba create -n ptb
+micromamba install -n ptb python-telegram-bot python-dotenv openai
+```
+
 ## 部署`kua_kua_doge_23333_bot`
 
 1. 先在自己电脑上开发（见上一段）
