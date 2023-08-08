@@ -37,12 +37,15 @@ class NaiveChatGPT:
             self.message_list = self.message_list[:1]
         message = str(message)
         if message: #skip if empty
+            if update is not None:
+                is_mentioned = any(x.type==telegram.constants.MessageEntityType.MENTION for x in update.message.entities)
+            message = message.replace('@'+app.bot.username, '')
             if self.is_group:
                 assert update is not None
                 message = update.effective_user.first_name + ': ' + message
                 print('[mydebug][gpt-chat]', message)
             self.message_list.append({"role": "user", "content": str(message)})
-            if self._check_need_response():
+            if is_mentioned or self._check_need_response():
                 self.response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.message_list)
                 tmp0 = self.response.choices[0].message.content
                 print('[mydebug][gpt-chat]', tmp0)
